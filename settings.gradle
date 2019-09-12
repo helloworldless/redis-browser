@@ -1,0 +1,5 @@
+rootProject.name = 'redis-browser'
+
+include 'server', 'ui'
+
+rootProject.children.each { it.name = "redis-browser-${it.name}" }
