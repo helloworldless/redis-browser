@@ -2,7 +2,7 @@ import * as React from "react";
 import { FetchResponse, doFetch, FetchRequest } from "./fetchUtil";
 import { CommandContext } from "./App";
 import StyleContext from "./StyleContext";
-import { RedisCommand, RedisCommandType } from "./types";
+import { RedisCommand, RedisCommandType, CommandResult } from "./types";
 
 interface CommandRunnerProps {
   command: RedisCommand;
@@ -36,12 +36,12 @@ export const RedisCommandDescriptor: {
     type: RedisCommandType.READ,
     parameters: [{ key: "key", name: "Key" }, { key: "field", name: "Field" }],
     urlBuilder: ({ key, field }: { key: string; field: string }) =>
-      `/api/hashField/${key}/${field}`
+      `/api/hash/${key}/field/${field}`
   },
   [RedisCommand.GET_HASH_FIELDS]: {
     type: RedisCommandType.READ,
     parameters: [{ key: "key", name: "Key" }],
-    urlBuilder: ({ key }: { key: string }) => `/api/hashFields/${key}`
+    urlBuilder: ({ key }: { key: string }) => `/api/hash/${key}`
   },
   [RedisCommand.SET_HASH_FIELD]: {
     type: RedisCommandType.WRITE,
@@ -58,8 +58,15 @@ export const RedisCommandDescriptor: {
       key: string;
       field: string;
       value: string;
-    }) => `/api/hashField/${key}/${field}/${value}`,
+    }) => `/api/hash/${key}/field/${field}/value/${value}`,
     fetchOptions: { method: "POST" }
+  },
+  [RedisCommand.DELETE_HASH_FIELD]: {
+    type: RedisCommandType.WRITE,
+    parameters: [{ key: "key", name: "Key" }, { key: "field", name: "Field" }],
+    urlBuilder: ({ key, field }: { key: string; field: string }) =>
+      `/api/hash/${key}/field/${field}`,
+    fetchOptions: { method: "DELETE" }
   }
 };
 
@@ -81,12 +88,14 @@ function validateParameters(
 }
 
 function CommandRunner({ command }: CommandRunnerProps) {
+  const commandDescriptor = RedisCommandDescriptor[command];
+
   const [fetchData, setFetchData] = React.useState<any>(null);
   const [fetchError, setFetchError] = React.useState<any>(null);
   const [isFetching, setIsFetching] = React.useState(false);
   const [commandParameters, setCommandParameters] = React.useState<
     RedisCommandParameterKeyValue[]
-  >(RedisCommandDescriptor[command]!.parameters.map(
+  >(commandDescriptor.parameters.map(
     withEmptyValue
   ) as RedisCommandParameterKeyValue[]);
 
@@ -118,15 +127,14 @@ function CommandRunner({ command }: CommandRunnerProps) {
     setFetchError("");
     setFetchData("");
     setIsFetching(true);
-    const redisCommandDescriptor = RedisCommandDescriptor[command];
     const fetchRequest: FetchRequest = {
-      url: redisCommandDescriptor.urlBuilder(
+      url: commandDescriptor.urlBuilder(
         commandParameters.reduce(
           (acc, curr) => Object.assign(acc, { [curr.key]: curr.value }),
           {}
         )
       ),
-      options: redisCommandDescriptor.fetchOptions
+      options: commandDescriptor.fetchOptions
     };
 
     const { data, error }: FetchResponse<any> = await doFetch<any>(
@@ -136,11 +144,7 @@ function CommandRunner({ command }: CommandRunnerProps) {
     if (error) {
       setFetchError(error.message || error);
     } else {
-      setFetchData(
-        redisCommandDescriptor.type === RedisCommandType.WRITE
-          ? `Success; Did field already exist? ${data}`
-          : data!
-      );
+      setFetchData(data);
     }
     setIsFetching(false);
   };
@@ -182,7 +186,7 @@ function CommandRunner({ command }: CommandRunnerProps) {
         </div>
 
         <form onSubmit={handleRunCommand}>
-          {RedisCommandDescriptor[command]!.parameters.map(parameter => (
+          {commandDescriptor.parameters.map(parameter => (
             <div
               style={{
                 margin: "0.5rem"
@@ -234,7 +238,11 @@ function CommandRunner({ command }: CommandRunnerProps) {
         Loading...
       </ConditionalResultsContainer>
       <ConditionalResultsContainer shouldRender={fetchData}>
-        {JSON.stringify(fetchData)}
+        {fetchData && commandDescriptor.type === RedisCommandType.WRITE
+          ? `${(fetchData as CommandResult).resultDescription}? ${
+              (fetchData as CommandResult).result
+            }`
+          : JSON.stringify(fetchData)}
       </ConditionalResultsContainer>
       <ConditionalResultsContainer shouldRender={fetchError}>
         Error: {JSON.stringify(fetchError)}
