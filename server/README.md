@@ -7,5 +7,6 @@ public repository and is therefore expected to be present in your local Maven re
 You can clone the repo from [here](https://github.com/paltamadura/redis-client) and then 
 run a `mvn install:install-file` to install it locally.
 
+1. Make sure you have a Redis server running on port 6379 with default settings (i.e. no password)
 1. Run main class `com.davidagood.RedisBrowserServerApplication`
 1. Or run `../gradlew bootRun`

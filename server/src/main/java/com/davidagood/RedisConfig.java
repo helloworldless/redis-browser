@@ -12,7 +12,18 @@ public class RedisConfig {
 
     @Bean
     public RedisForJava redisForJava() {
-        return RedisForJavaFactory.newRedisClient(new JedisWrapper(new Jedis()));
+        Jedis jedis = new Jedis();
+        failIfNotConnectedToRedis(jedis);
+        return RedisForJavaFactory.newRedisClient(new JedisWrapper(jedis));
+    }
+
+    private void failIfNotConnectedToRedis(Jedis jedis) {
+        String message = "testing-redis-connection";
+        String messageEcho = jedis.echo(message);
+        if (!messageEcho.equals(message)) {
+            throw new RuntimeException("Could not connect to local Redis server. Make sure you have" +
+                    " a Redis server running locally with default settings: port 6379 and no password)");
+        }
     }
 
 }
