@@ -7,8 +7,8 @@
     "url": "https://github.com/paltamadura"
   },
   "repository": {
-    "type" : "git",
-    "url" : "https://github.com/paltamadura/redis-browser.git"
+    "type": "git",
+    "url": "https://github.com/paltamadura/redis-browser.git"
   },
   "dependencies": {
     "@types/jest": "24.0.18",

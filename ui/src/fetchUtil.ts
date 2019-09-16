@@ -19,6 +19,7 @@ export async function doFetch<T>({
       const error = await response.text();
       return { error };
     } else {
+      const clonedResponse = response.clone();
       try {
         const data = await response.json();
         return { data };
@@ -26,7 +27,7 @@ export async function doFetch<T>({
         console.log(
           `Failed to read JSON from response with error: ${e}; Attempting to read response as text`
         );
-        const data: any = await response.text();
+        const data: any = await clonedResponse.text();
         return { data };
       }
     }
