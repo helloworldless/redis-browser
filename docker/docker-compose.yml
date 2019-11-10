@@ -3,17 +3,17 @@ services:
   server:
     depends_on:
       - redis
-    image: "paltamadura/redis-browser-server"
+    image: "paltamadura/redis-browser-server:latest"
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     ports:
       - "8080:8080"
   ui:
-    image: "paltamadura/redis-browser-ui"
+    image: "paltamadura/redis-browser-ui:latest"
     ports:
       - "3000:3000"
-  redis:
+  redis:gi
     image: redis
     expose:
       - 6379
