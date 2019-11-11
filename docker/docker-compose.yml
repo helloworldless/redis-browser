@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 services:
   server:
     depends_on:
@@ -13,7 +13,7 @@ services:
     image: "paltamadura/redis-browser-ui:latest"
     ports:
       - "3000:3000"
-  redis:gi
+  redis:
     image: redis
     expose:
       - 6379
