@@ -1,21 +1,19 @@
-import * as React from "react";
-import { FetchResponse, doFetch, FetchRequest } from "./fetchUtil";
+import React from "react";
+import { FetchResponse, doFetch, FetchRequest } from "../util//fetchUtil";
 import { CommandContext } from "./App";
 import StyleContext from "./StyleContext";
-import { RedisCommand, RedisCommandType, CommandResult } from "./types";
-
-interface CommandRunnerProps {
-  command: RedisCommand;
-}
+import {
+  RedisCommand,
+  RedisCommandType,
+  CommandResult,
+  RedisCommandParameterKeyValue,
+  RedisCommandAndParameters
+} from "../types";
+import { removeCommand, updateCommand } from "../store/actions";
 
 interface RedisCommandParameter {
   key: string;
   name: string;
-}
-
-interface RedisCommandParameterKeyValue {
-  key: string;
-  value: string;
 }
 
 interface RedisCommandDescriptor {
@@ -25,7 +23,7 @@ interface RedisCommandDescriptor {
   fetchOptions?: object;
 }
 
-function withEmptyValue(obj: object) {
+export function withEmptyValue<T>(obj: T): T & { value: string } {
   return { ...obj, value: "" };
 }
 
@@ -70,13 +68,8 @@ export const RedisCommandDescriptor: {
   }
 };
 
-interface RedisCommandParameterValidationResult {
-  key: string;
-  message: string;
-}
-
 function validateParameters(
-  commandParameters: RedisCommandParameterKeyValue[]
+  commandParameters: ReadonlyArray<RedisCommandParameterKeyValue>
 ): string[] {
   return commandParameters.reduce(
     (acc, curr) =>
@@ -87,30 +80,33 @@ function validateParameters(
   );
 }
 
-function CommandRunner({ command }: CommandRunnerProps) {
-  const commandDescriptor = RedisCommandDescriptor[command];
+interface CommandRunnerProps {
+  command: RedisCommandAndParameters;
+}
 
-  const [fetchData, setFetchData] = React.useState<any>(null);
-  const [fetchError, setFetchError] = React.useState<any>(null);
-  const [isFetching, setIsFetching] = React.useState(false);
-  const [commandParameters, setCommandParameters] = React.useState<
-    RedisCommandParameterKeyValue[]
-  >(commandDescriptor.parameters.map(
-    withEmptyValue
-  ) as RedisCommandParameterKeyValue[]);
+function CommandRunner({ command }: CommandRunnerProps) {
+  const commandDescriptor = RedisCommandDescriptor[command.command];
 
   const { dispatch } = React.useContext(CommandContext);
   const { theme, util } = React.useContext(StyleContext);
 
-  function addCommandParameter(e: React.ChangeEvent<HTMLInputElement>) {
+  const [fetchData, setFetchData] = React.useState<any>(null);
+  const [fetchError, setFetchError] = React.useState<any>(null);
+  const [isFetching, setIsFetching] = React.useState(false);
+
+  function updateCommandParameter(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target;
-    const updatedCommandParameters = commandParameters.map(commandParameter => {
-      if (commandParameter.key === name) {
-        return { key: name, value };
+    const updatedCommandParameters = command.parameters.map(
+      commandParameter => {
+        if (commandParameter.key === name) {
+          return { key: name, value };
+        }
+        return commandParameter;
       }
-      return commandParameter;
-    });
-    setCommandParameters(updatedCommandParameters);
+    );
+    dispatch(
+      updateCommand({ ...command, parameters: updatedCommandParameters })
+    );
   }
 
   function handleRunCommand(e: React.FormEvent<HTMLFormElement>) {
@@ -119,7 +115,7 @@ function CommandRunner({ command }: CommandRunnerProps) {
   }
 
   const fetchWrapper = async () => {
-    const validationErrors = validateParameters(commandParameters);
+    const validationErrors = validateParameters(command.parameters);
     if (validationErrors.length) {
       setFetchError(validationErrors.join("; "));
       return;
@@ -129,7 +125,7 @@ function CommandRunner({ command }: CommandRunnerProps) {
     setIsFetching(true);
     const fetchRequest: FetchRequest = {
       url: commandDescriptor.urlBuilder(
-        commandParameters.reduce(
+        command.parameters.reduce(
           (acc, curr) => Object.assign(acc, { [curr.key]: curr.value }),
           {}
         )
@@ -167,7 +163,7 @@ function CommandRunner({ command }: CommandRunnerProps) {
               margin: "1rem"
             }}
           >
-            {command}
+            {command.command}
           </h4>
           <div style={{ textAlign: "center" }}>
             <button
@@ -176,9 +172,7 @@ function CommandRunner({ command }: CommandRunnerProps) {
                 backgroundColor: `${theme.dark.color.background.secondary}`,
                 color: `${theme.dark.color.text.light}`
               }}
-              onClick={() =>
-                dispatch({ type: "removeCommand", payload: command })
-              }
+              onClick={() => dispatch(removeCommand(command.id))}
             >
               <h6>Remove</h6>
             </button>
@@ -210,11 +204,11 @@ function CommandRunner({ command }: CommandRunnerProps) {
                   name={parameter.key}
                   type="text"
                   value={
-                    commandParameters.find(
+                    command.parameters.find(
                       param => param.key === parameter.key
                     )!.value
                   }
-                  onChange={addCommandParameter}
+                  onChange={updateCommandParameter}
                 />
               </label>
             </div>

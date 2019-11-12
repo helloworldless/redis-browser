@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "@types/uuid": "^3.4.6"
+  }
+}

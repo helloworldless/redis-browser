@@ -5,7 +5,7 @@ import StyleContext from "./StyleContext";
 import CommandAdder from "./CommandAdder";
 
 const RedisBrowser: React.FC = () => {
-  const { state } = React.useContext(CommandContext);
+  const { state: commands } = React.useContext(CommandContext);
   const { theme } = React.useContext(StyleContext);
   return (
     <main
@@ -26,27 +26,27 @@ const RedisBrowser: React.FC = () => {
       </div>
       <CommandAdder />
 
-      {state.map((command, i) => (
+      {commands.map((command, i) => (
         <div
-          key={command}
+          key={command.id}
           style={{
             borderBottom: `${
-              isNotLastIndex(state, i) ? `1px solid gray` : "none"
+              isNotLastIndex(commands, i) ? `1px solid gray` : "none"
             }`
           }}
         >
-          <CommandRunner key={i} command={command} />
+          <CommandRunner command={command} />
         </div>
       ))}
     </main>
   );
 };
 
-function isLastIndex(arr: any[], i: number): boolean {
+function isLastIndex(arr: ReadonlyArray<any>, i: number): boolean {
   return i === arr.length - 1;
 }
 
-function isNotLastIndex(arr: any[], i: number): boolean {
+function isNotLastIndex(arr: ReadonlyArray<any>, i: number): boolean {
   return !isLastIndex(arr, i);
 }
 
